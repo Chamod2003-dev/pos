@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Counter — Point of Sale</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="app">
+
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="brand">
+      <span class="brand-mark">¤</span>
+      <span class="brand-name">Counter</span>
+    </div>
+    <button class="nav-btn active" data-view="pos">
+      <span class="nav-icon">⌗</span> Register
+    </button>
+    <button class="nav-btn" data-view="orders">
+      <span class="nav-icon">≣</span> Orders
+    </button>
+    <button class="nav-btn" data-view="products">
+      <span class="nav-icon">◧</span> Products
+    </button>
+    <button class="nav-btn" data-view="dashboard">
+      <span class="nav-icon">◔</span> Dashboard
+    </button>
+    <div class="session-counter" id="sessionCounter">
+      <div class="sc-label">Counter</div>
+      <div class="sc-timer" id="sessionTimer">00:00:00</div>
+      <div class="sc-name" id="sessionCashier">—</div>
+      <button class="sc-close-btn" id="closeSessionBtn" title="Close register">⏻</button>
+    </div>
+  </nav>
+
+  <!-- ============ POS / Register VIEW ============ -->
+  <main class="view" id="view-pos">
+    <div class="pos-layout">
+
+      <section class="catalog">
+        <div class="catalog-toolbar">
+          <input type="search" id="productSearch" class="search-input" placeholder="Search products or scan SKU…">
+        </div>
+        <div class="category-tabs" id="categoryTabs">
+          <button class="cat-tab active" data-cat="">All items</button>
+        </div>
+        <div class="product-grid" id="productGrid"></div>
+      </section>
+
+      <aside class="ticket">
+        <div class="ticket-head">
+          <span class="ticket-title">Current sale</span>
+          <button class="ticket-clear" id="clearCart">Clear</button>
+        </div>
+
+        <div class="ticket-lines" id="cartLines">
+          <div class="ticket-empty">No items yet — tap a product to add it.</div>
+        </div>
+
+        <div class="ticket-summary">
+          <div class="sum-row"><span>Subtotal</span><span id="sumSubtotal">$0.00</span></div>
+          <div class="sum-row">
+            <span>Discount</span>
+            <span class="discount-input-wrap">$<input type="number" id="discountInput" min="0" step="0.01" value="0"></span>
+          </div>
+          <div class="sum-row"><span>Tax (<span id="taxRateLabel">0</span>%)</span><span id="sumTax">$0.00</span></div>
+          <div class="sum-row total"><span>Total</span><span id="sumTotal">$0.00</span></div>
+        </div>
+
+        <button class="checkout-btn" id="openCheckout" disabled>Charge</button>
+      </aside>
+    </div>
+  </main>
+
+  <!-- ============ ORDERS VIEW ============ -->
+  <main class="view hidden" id="view-orders">
+    <div class="view-header">
+      <h1>Orders</h1>
+      <input type="date" id="ordersDateFilter">
+    </div>
+    <div class="orders-table-wrap">
+      <table class="orders-table">
+        <thead>
+          <tr><th>Order #</th><th>Time</th><th>Customer</th><th>Items</th><th>Payment</th><th>Total</th></tr>
+        </thead>
+        <tbody id="ordersTableBody"></tbody>
+      </table>
+    </div>
+  </main>
+
+  <!-- ============ PRODUCTS VIEW ============ -->
+  <main class="view hidden" id="view-products">
+    <div class="view-header">
+      <h1>Products</h1>
+      <button class="primary-btn" id="newProductBtn">+ New product</button>
+    </div>
+    <div class="orders-table-wrap">
+      <table class="orders-table">
+        <thead>
+          <tr><th></th><th>Name</th><th>SKU</th><th>Category</th><th>Price</th><th>Stock</th><th></th></tr>
+        </thead>
+        <tbody id="productsTableBody"></tbody>
+      </table>
+    </div>
+  </main>
+
+  <!-- ============ DASHBOARD VIEW ============ -->
+  <main class="view hidden" id="view-dashboard">
+    <div class="view-header">
+      <h1>Dashboard</h1>
+      <input type="date" id="dashDateFilter">
+    </div>
+    <div class="stat-cards">
+      <div class="stat-card">
+        <span class="stat-label">Sales today</span>
+        <span class="stat-value" id="statSales">$0.00</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Orders</span>
+        <span class="stat-value" id="statOrders">0</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Tax collected</span>
+        <span class="stat-value" id="statTax">$0.00</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Discounts given</span>
+        <span class="stat-value" id="statDiscount">$0.00</span>
+      </div>
+    </div>
+    <div class="dash-grid">
+      <div class="dash-panel">
+        <h2>Top sellers</h2>
+        <div id="topItemsList" class="top-items-list"></div>
+      </div>
+      <div class="dash-panel">
+        <h2>Payment methods</h2>
+        <div id="paymentBreakdown" class="top-items-list"></div>
+      </div>
+    </div>
+  </main>
+
+</div>
+
+<!-- ============ CHECKOUT MODAL ============ -->
+<div class="modal-backdrop hidden" id="checkoutModal">
+  <div class="modal receipt-modal">
+    <div class="modal-head">
+      <span>Charge customer</span>
+      <button class="modal-close" data-close="checkoutModal">×</button>
+    </div>
+    <div class="modal-body">
+      <label class="field-label">Customer name (optional)</label>
+      <input type="text" id="customerNameInput" placeholder="Walk-in Customer">
+
+      <label class="field-label">Payment method</label>
+      <div class="payment-methods">
+        <button class="pay-method active" data-method="cash">Cash</button>
+        <button class="pay-method" data-method="card">Card</button>
+        <button class="pay-method" data-method="mobile">Mobile</button>
+      </div>
+
+      <div id="cashRow">
+        <label class="field-label">Amount tendered</label>
+        <input type="number" id="amountTendered" step="0.01" min="0">
+        <div class="change-line">Change due: <strong id="changeDue">$0.00</strong></div>
+      </div>
+
+      <div class="modal-total-line">
+        <span>Total due</span>
+        <span id="modalTotal">$0.00</span>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="secondary-btn" data-close="checkoutModal">Cancel</button>
+      <button class="primary-btn" id="confirmChargeBtn">Confirm payment</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ RECEIPT / SUCCESS MODAL ============ -->
+<div class="modal-backdrop hidden" id="receiptModal">
+  <div class="modal receipt-modal">
+    <div class="modal-head">
+      <span>Sale complete</span>
+      <button class="modal-close" data-close="receiptModal">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="receipt-paper" id="receiptPaper"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="primary-btn" data-close="receiptModal">New sale</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PRODUCT EDIT MODAL ============ -->
+<div class="modal-backdrop hidden" id="productModal">
+  <div class="modal">
+    <div class="modal-head">
+      <span id="productModalTitle">New product</span>
+      <button class="modal-close" data-close="productModal">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="productId">
+      <label class="field-label">Name</label>
+      <input type="text" id="productName">
+
+      <label class="field-label">Category</label>
+      <select id="productCategory"></select>
+
+      <div class="two-col">
+        <div>
+          <label class="field-label">Price</label>
+          <input type="number" id="productPrice" step="0.01" min="0">
+        </div>
+        <div>
+          <label class="field-label">SKU</label>
+          <input type="text" id="productSku">
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div>
+          <label class="field-label">Stock</label>
+          <input type="number" id="productStock" step="1" min="0">
+        </div>
+        <div>
+          <label class="field-label">Icon (emoji)</label>
+          <input type="text" id="productEmoji" maxlength="2" value="🛒">
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="secondary-btn" data-close="productModal">Cancel</button>
+      <button class="primary-btn" id="saveProductBtn">Save product</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ OPEN REGISTER (COUNTER) MODAL ============ -->
+<div class="modal-backdrop hidden" id="openSessionModal">
+  <div class="modal">
+    <div class="modal-head">
+      <span>Open register</span>
+    </div>
+    <div class="modal-body">
+      <p class="modal-intro">Start a new counter session. It runs for up to 24 hours before the register locks and needs to be reopened.</p>
+      <label class="field-label">Cashier name</label>
+      <input type="text" id="cashierNameInput" placeholder="e.g. Chamod">
+
+      <label class="field-label">Opening cash</label>
+      <input type="number" id="openingCashInput" step="0.01" min="0" value="0">
+    </div>
+    <div class="modal-foot">
+      <button class="primary-btn" id="confirmOpenSessionBtn">Open register</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SESSION EXPIRED LOCK SCREEN ============ -->
+<div class="lock-overlay hidden" id="lockOverlay">
+  <div class="lock-card">
+    <div class="lock-icon">⏻</div>
+    <h1>Register locked</h1>
+    <p>This counter session has been open for 24 hours and has locked automatically.<br>Close it to start a new session.</p>
+    <div class="lock-session-info" id="lockSessionInfo"></div>
+    <button class="primary-btn" id="lockCloseBtn">Close session &amp; reopen</button>
+  </div>
+</div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
